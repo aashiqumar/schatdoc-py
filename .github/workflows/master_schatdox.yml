@@ -22,12 +22,20 @@ jobs:
         run: |
           python -m venv venv
           source venv/bin/activate
-      
+
       - name: Install dependencies
         run: |
           source venv/bin/activate
           pip install -r requirements.txt
-        
+        shell: /usr/bin/bash -e {0}
+        env:
+          pythonLocation: /opt/hostedtoolcache/Python/3.9.20/x64
+          PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.9.20/x64/lib/pkgconfig
+          Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.9.20/x64
+          Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.9.20/x64
+          Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.9.20/x64
+          LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.9.20/x64/lib
+
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
@@ -47,7 +55,7 @@ jobs:
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
-    
+
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
