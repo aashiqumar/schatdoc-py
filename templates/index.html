@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebSocket Chat App</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f4f4f4;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      background-color: #fff;
+      width: 90%;
+      max-width: 600px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      height: 80vh;
+      overflow: hidden;
+    }
+
+    .chat-box {
+      flex-grow: 1;
+      padding: 20px;
+      overflow-y: auto;
+      border-bottom: 1px solid #eee;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      word-wrap: break-word;
+      max-width: 80%;
+      display: inline-block;
+    }
+
+    .message.received {
+      background-color: #f1f1f1;
+      text-align: left;
+      align-self: flex-start; /* Align received messages to the left */
+    }
+
+    .message.sent {
+      background-color: #d1e7ff;
+      text-align: right;
+      align-self: flex-end; /* Align sent messages to the right */
+    }
+
+    .input-container {
+      padding: 15px;
+      display: flex;
+      gap: 10px;
+      background-color: #f8f8f8;
+    }
+
+    .input-container input {
+      flex-grow: 1;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      outline: none;
+      transition: border-color 0.2s ease-in-out;
+    }
+
+    .input-container input:focus {
+      border-color: #007bff;
+    }
+
+    .input-container button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.2s ease-in-out;
+    }
+
+    .input-container button:hover {
+      background-color: #0056b3;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 600px) {
+      .chat-container {
+        height: 100vh;
+        border-radius: 0;
+      }
+
+      .input-container {
+        padding: 10px;
+      }
+
+      .input-container input {
+        font-size: 14px;
+      }
+
+      .input-container button {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <!-- Chat messages will appear here -->
+    <div id="chatBox" class="chat-box"></div>
+
+    <!-- Input for sending messages -->
+    <div class="input-container">
+      <input type="text" id="messageInput" placeholder="Type your message">
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    const chatBox = document.getElementById('chatBox');
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
+
+    // Function to append a message to the chat box
+    function appendMessage(text, type) {
+      const message = document.createElement('div');
+      message.classList.add('message', type);
+      message.textContent = text;
+      chatBox.appendChild(message);
+      chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll to the latest message
+    }
+
+    // Receive message
+    socket.on('message', function (msg) {
+      appendMessage(msg, 'received');
+    });
+
+    // Send message
+    sendBtn.addEventListener('click', () => {
+      const message = messageInput.value.trim();
+      if (message !== '') {
+        socket.send(message);
+        appendMessage(message, 'sent');
+        messageInput.value = ''; // Clear the input after sending
+      }
+    });
+
+    // Send message on Enter key press
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
