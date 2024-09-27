@@ -134,6 +134,13 @@
         </select>
     </div>
 
+    <!-- 4-digit code input -->
+    <div class="input-container">
+        <input type="text" id="codeInput" placeholder="Enter 4-digit code">
+        <button id="createCodeBtn">Create Code</button>
+        <button id="joinCodeBtn">Join Code</button>
+    </div>
+
     <!-- Chat messages will appear here -->
     <div id="chatBox" class="chat-box"></div>
 
@@ -151,6 +158,10 @@
     const sendBtn = document.getElementById('sendBtn');
     const messageInput = document.getElementById('messageInput');
     const languageSelect = document.getElementById('languageSelect');
+    const codeInput = document.getElementById('codeInput');
+    const createCodeBtn = document.getElementById('createCodeBtn');
+    const joinCodeBtn = document.getElementById('joinCodeBtn');
+    let clientId;
 
     // Function to append a message to the chat box
     function appendMessage(text, type) {
@@ -174,6 +185,11 @@
         return data.translatedText;
     }
 
+    // Receive client ID
+    socket.on('client_id', function (id) {
+        clientId = id;
+    });
+
     // Receive message
     socket.on('message', async function (msg) {
         const targetLanguage = languageSelect.value;
@@ -181,11 +197,28 @@
         appendMessage(translatedMsg, 'received');
     });
 
+    // Create code
+    createCodeBtn.addEventListener('click', () => {
+        const code = codeInput.value.trim();
+        if (code.length === 4) {
+            socket.emit('create_code', { client_id: clientId, code });
+        }
+    });
+
+    // Join code
+    joinCodeBtn.addEventListener('click', () => {
+        const code = codeInput.value.trim();
+        if (code.length === 4) {
+            socket.emit('join_code', { client_id: clientId, code });
+        }
+    });
+
     // Send message
     sendBtn.addEventListener('click', () => {
         const message = messageInput.value.trim();
-        if (message !== '') {
-            socket.send(message);
+        const code = codeInput.value.trim();
+        if (message !== '' && code.length === 4) {
+            socket.emit('message', { message, code });
             appendMessage(message, 'sent');
             messageInput.value = ''; // Clear the input after sending
         }
