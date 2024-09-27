@@ -1,10 +1,14 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, send
 import uuid
+from app.controller.TranslationController import translation_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
+
+# Register the translation blueprint
+app.register_blueprint(translation_bp)
 
 clients = {}
 
