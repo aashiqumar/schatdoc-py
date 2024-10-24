@@ -1,17 +1,18 @@
 from flask import Flask, render_template, request
-from flask_socketio import SocketIO, send, emit
+from flask_socketio import SocketIO, send, emit, join_room, leave_room
 import uuid
+from flask_cors import CORS
 from app.controller.TranslationController import translation_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app)
 
-# Register the translation blueprint
+CORS(app, resources={r"/*": {"origins": "http://127.0.0.1:8000"}})
+socketio = SocketIO(app, cors_allowed_origins="http://127.0.0.1:8000")
+
 app.register_blueprint(translation_bp)
 
 clients = {}
-codes = {}
 
 @app.route('/')
 def index():
@@ -20,51 +21,41 @@ def index():
 @socketio.on('connect')
 def handle_connect():
     client_id = str(uuid.uuid4())
-    clients[client_id] = {'sid': request.sid, 'code': None}
+    clients[request.sid] = client_id
     emit('client_id', client_id)
 
 @socketio.on('disconnect')
 def handle_disconnect():
-    client_id = next((k for k, v in clients.items() if v['sid'] == request.sid), None)
-    if client_id:
-        code = clients[client_id]['code']
-        if code in codes:
-            codes[code].remove(client_id)
-            if not codes[code]:
-                del codes[code]
-        del clients[client_id]
+    clients.pop(request.sid, None)
 
-@socketio.on('create_code')
-def handle_create_code(data):
-    client_id = data['client_id']
-    code = data['code']
-    if code not in codes:
-        codes[code] = []
-    codes[code].append(client_id)
-    clients[client_id]['code'] = code
-    emit('code_created', code, room=clients[client_id]['sid'])
-
-@socketio.on('join_code')
-def handle_join_code(data):
-    client_id = data['client_id']
-    code = data['code']
-    if code in codes:
-        codes[code].append(client_id)
-        clients[client_id]['code'] = code
-        emit('code_joined', code, room=clients[client_id]['sid'])
+@socketio.on('join_channel')
+def handle_join_channel(data):
+    client_id = data.get('client_id')
+    channel = data.get('channel')
+    if client_id and channel:
+        join_room(channel)
+        emit('channel_joined', channel)
     else:
-        emit('error', 'Code not found', room=clients[client_id]['sid'])
+        print('Error: client_id or channel not provided')
+
+@socketio.on('leave_channel')
+def handle_leave_channel(data):
+    client_id = data.get('client_id')
+    channel = data.get('channel')
+    if client_id and channel:
+        leave_room(channel)
+        emit('channel_left', channel)
+    else:
+        print('Error: client_id or channel not provided')
 
 @socketio.on('message')
 def handle_message(data):
-    client_id = next((k for k, v in clients.items() if v['sid'] == request.sid), None)
-    if client_id:
-        code = clients[client_id]['code']
-        message = data['message']
-        if code in codes:
-            for cid in codes[code]:
-                if cid != client_id:
-                    send(message, room=clients[cid]['sid'])
+    channel = data.get('channel')
+    message = data.get('message')
+    if channel and message:
+        emit('message', message, room=channel)
+    else:
+        print('Error: channel or message not provided')
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=8000)
+    socketio.run(app, host='0.0.0.0', port=8100)
